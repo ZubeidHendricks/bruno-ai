@@ -10,6 +10,7 @@ A sophisticated financial intelligence platform that leverages AI and vector dat
 - **AI-Powered Insights**: Automated financial recommendations
 - **Multi-system Integration**: Connect with Excel, SAP, Salesforce
 - **Interactive Dashboards**: Visual representation of financial metrics
+- **Full API Integration**: Production-ready backend connectivity
 
 ## 🏗️ Architecture
 
@@ -41,11 +42,22 @@ A sophisticated financial intelligence platform that leverages AI and vector dat
 │  │             │  │ Service     │  │ Service     │  │ Service │  │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────┘  │
 └─────────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   Data Integration Layer                        │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐  │
+│  │ API         │  │ Database    │  │ Auth        │  │ Storage │  │
+│  │ Service     │  │ Service     │  │ Service     │  │ Service │  │
+│  │             │  │             │  │             │  │         │  │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────┘  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## 📋 Prerequisites
 
 - Node.js (v16 or higher)
+- PostgreSQL 14+
 - Python 3.9+
 - OpenAI API key
 - Weaviate instance (local or cloud)
@@ -69,17 +81,21 @@ cp .env.example .env
 ```
 Edit `.env` with your configuration:
 ```
-REACT_APP_OPENAI_API_KEY=your_openai_api_key
+REACT_APP_API_URL=http://localhost:3001/api
+REACT_APP_DEBUG=false
+DATABASE_URL=postgres://username:password@localhost:5432/bruno_db
+OPENAI_API_KEY=your_openai_api_key
 WEAVIATE_HOST=localhost:8080
 WEAVIATE_SCHEME=http
+JWT_SECRET=your_jwt_secret
 ```
 
-4. Start Weaviate (if running locally):
+4. Set up the database:
 ```bash
-docker run -p 8080:8080 semitechnologies/weaviate:latest
+npm run setup-database
 ```
 
-5. Run the development server:
+5. Start the development server:
 ```bash
 npm run dev
 ```
@@ -127,25 +143,39 @@ Access the dashboard to see:
 
 ## 🔧 API Documentation
 
+Bruno AI implements a comprehensive REST API for seamless integration with your existing systems. All API endpoints support proper authentication and rate limiting.
+
+### Authentication
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@company.com",
+  "password": "secure_password"
+}
+```
+
 ### Chat Endpoint
 ```http
 POST /api/chat
 Content-Type: application/json
+Authorization: Bearer {your_token}
 
 {
   "message": "Analyze revenue trends for Q3",
-  "sessionId": "abc123",
-  "userId": "user@company.com"
+  "sessionId": "abc123"
 }
 ```
 
 ### Data Processing Endpoint
 ```http
-POST /api/data/process
+POST /api/datasets/process
 Content-Type: application/json
+Authorization: Bearer {your_token}
 
 {
-  "fileId": "uploaded-file-id",
+  "datasetId": "uploaded-file-id",
   "transformation": "merge with customer data",
   "options": {
     "preview": true
@@ -155,11 +185,12 @@ Content-Type: application/json
 
 ### Financial Analysis Endpoint
 ```http
-POST /api/analysis/trends
+POST /api/reports/trends
 Content-Type: application/json
+Authorization: Bearer {your_token}
 
 {
-  "data": [...],
+  "datasetId": "dataset-id",
   "timeColumn": "date",
   "valueColumn": "revenue"
 }
@@ -167,11 +198,13 @@ Content-Type: application/json
 
 ## 🔐 Security
 
-- All data is encrypted in transit and at rest
+- All data is encrypted in transit (HTTPS) and at rest
 - API keys are stored securely in environment variables
 - File uploads are validated and scanned
 - Session management with JWT tokens
 - Role-based access control
+- Rate limiting prevents abuse
+- CSRF protection implemented
 
 ## 📈 Performance Optimization
 
@@ -179,6 +212,7 @@ Content-Type: application/json
 - Database queries use indexing for efficiency
 - Large files are processed in chunks
 - Background job processing for heavy computations
+- API responses are optimized for minimal payload size
 
 ## 🧪 Testing
 
@@ -192,6 +226,11 @@ Run integration tests:
 npm run test:integration
 ```
 
+Run API tests:
+```bash
+npm run test:api
+```
+
 ## 📦 Deployment
 
 ### Production Build
@@ -201,16 +240,18 @@ npm run build
 
 ### Docker Deployment
 ```bash
-docker build -t bruno-ai .
-docker run -p 3000:3000 bruno-ai
+docker-compose up -d
 ```
 
-### Environment Variables
+### Environment Variables for Production
 ```
 NODE_ENV=production
 REACT_APP_API_URL=https://api.your-domain.com
+REACT_APP_DEBUG=false
+DATABASE_URL=postgres://username:password@db:5432/bruno_db
 OPENAI_API_KEY=your_production_key
 WEAVIATE_HOST=your_weaviate_instance
+JWT_SECRET=your_secure_jwt_secret
 ```
 
 ## 🔄 Roadmap
@@ -219,16 +260,19 @@ WEAVIATE_HOST=your_weaviate_instance
 - ✅ Chat Data Prep™ implementation
 - ✅ Basic analytics dashboard
 - ✅ Excel data integration
+- ✅ Full API integration
 
 ### Phase 2: Enhancement (In Progress)
 - 🚧 Advanced AI forecasting
 - 🚧 Multi-language support
 - 🚧 ERP system integration
+- 🚧 Performance optimization
 
 ### Phase 3: Scale (Planned)
 - 📅 Enterprise features
 - 📅 Real-time collaboration
 - 📅 Advanced reporting
+- 📅 Mobile applications
 
 ## 📚 Documentation
 
@@ -236,6 +280,7 @@ WEAVIATE_HOST=your_weaviate_instance
 - [Architecture Guide](docs/architecture.md)
 - [User Guide](docs/user-guide.md)
 - [Deployment Guide](docs/deployment.md)
+- [Integration Guide](docs/integration.md)
 
 ## 🤝 Contributing
 

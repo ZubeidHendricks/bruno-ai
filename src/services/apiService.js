@@ -308,4 +308,8 @@ export default {
   dashboard,
   users,
   settings
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> febae6c (Add production-ready API integration)
