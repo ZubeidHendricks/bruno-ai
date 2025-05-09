@@ -141,9 +141,61 @@ Access the dashboard to see:
 "Find unusual spending patterns in the expense data"
 ```
 
+## 📈 Time Series Analysis
+
+Bruno AI includes robust time series analysis capabilities, designed specifically for financial data:
+
+### Financial Trend Analysis
+
+```javascript
+// Track financial metrics over time periods
+analyzeFinancialTrends(data, 'date', 'revenue');
+```
+
+The platform provides comprehensive time series functionality:
+
+- **Trend Detection**: Automatically identifies upward/downward trends in financial data
+- **Growth Rate Calculation**: Calculates period-over-period growth rates and compound growth
+- **Volatility Analysis**: Measures data volatility and statistical variance
+- **Forecasting**: Linear regression and time-based predictions with confidence scoring
+- **Anomaly Detection**: Z-score based outlier identification in time series
+- **Pattern Recognition**: Automatically detects:
+  - Seasonality patterns
+  - Cyclical trends with peak/trough identification
+  - Trend breaks and regime changes
+
+### Timeline Tracking
+
+The platform includes sophisticated timeline tracking for financial data processing:
+
+```javascript
+// Create a timeline of financial events
+const session = createTimelineSession(userId);
+startTimelineStep({ userId, sessionId, stepKey: 'DATA_INGESTION' });
+```
+
+Key timeline capabilities:
+
+- **Process Tracking**: Full audit trail of all data transformations
+- **Step-by-Step Analysis**: Detailed tracking of the entire data pipeline
+- **Performance Metrics**: Timing and duration analysis for optimization
+- **Session Management**: Group related operations for analysis
+- **Reversion Support**: Point-in-time recovery of previous data states
+- **Statistical Analysis**: Success rates and duration metrics by process type
+
+### Time Utilities
+
+The platform includes extensive time utilities for financial data:
+
+- **Date Formatting**: Flexible date formatting for financial reporting
+- **Relative Time**: Human-readable time expressions ("Today at 10:30 AM", "Yesterday")
+- **Duration Formatting**: Convert milliseconds to human-readable time spans
+- **Time Ago**: Calculate elapsed time for financial events
+- **Flexible Parsing**: Support for various date formats in financial data
+
 ## 🔧 API Services & Endpoints
 
-Bruno AI implements a comprehensive REST API integration with robust service modules. The platform now utilizes a modular service architecture with the following components:
+Bruno AI implements a comprehensive REST API integration with robust service modules. The platform utilizes a modular service architecture with the following components:
 
 ### Core API Services:
 
