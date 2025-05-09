@@ -141,9 +141,25 @@ Access the dashboard to see:
 "Find unusual spending patterns in the expense data"
 ```
 
-## 🔧 API Documentation
+## 🔧 API Services & Endpoints
 
-Bruno AI implements a comprehensive REST API for seamless integration with your existing systems. All API endpoints support proper authentication and rate limiting.
+Bruno AI implements a comprehensive REST API integration with robust service modules. The platform now utilizes a modular service architecture with the following components:
+
+### Core API Services:
+
+```javascript
+// Service Modules
+- apiService       // Base HTTP client with interceptors
+- authService      // Authentication and user management
+- dashboardService // Dashboard metrics and visualization
+- dataTransformationService // Data processing pipeline
+- financialAnalysisService  // Financial calculations and insights
+- openaiService    // AI-powered analysis and NLP
+- timelineService  // Historical data tracking
+- vectorDatabaseService // Vector embedding and similarity search
+```
+
+Each service encapsulates specific business logic and API endpoints with proper authentication, error handling, and logging.
 
 ### Authentication
 ```http
@@ -196,23 +212,51 @@ Authorization: Bearer {your_token}
 }
 ```
 
+### Dashboard Endpoints
+```http
+GET /api/dashboard/summary
+GET /api/dashboard/activity
+GET /api/dashboard/analytics?timeframe=monthly
+```
+
+### User Management Endpoints
+```http
+GET /api/users
+GET /api/users/:id
+POST /api/users
+PUT /api/users/:id
+DELETE /api/users/:id
+PATCH /api/users/:id/role
+```
+
+### Settings Endpoints
+```http
+GET /api/settings
+PUT /api/settings
+```
+
 ## 🔐 Security
 
 - All data is encrypted in transit (HTTPS) and at rest
 - API keys are stored securely in environment variables
-- File uploads are validated and scanned
-- Session management with JWT tokens
-- Role-based access control
+- JWT token-based authentication with proper expiration
+- Session management with automatic token refresh
+- Comprehensive request and response interceptors for error handling
+- Role-based access control with fine-grained permissions
 - Rate limiting prevents abuse
 - CSRF protection implemented
+- Secure password reset flow with tokenization
 
 ## 📈 Performance Optimization
 
+- Axios instance configured with optimal timeout settings
 - Vector embeddings are cached for faster retrieval
 - Database queries use indexing for efficiency
 - Large files are processed in chunks
 - Background job processing for heavy computations
 - API responses are optimized for minimal payload size
+- Conditional console logging based on environment
+- Configurable request timeout handling
 
 ## 🧪 Testing
 
