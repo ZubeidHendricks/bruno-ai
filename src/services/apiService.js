@@ -1,211 +1,34 @@
 import axios from 'axios';
 
-// Base API URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Create axios instance with base URL from environment variables
+const API_URL = process.env.REACT_APP_API_URL || '/api';
+const DEBUG = process.env.REACT_APP_DEBUG === 'true';
 
-// Dataset API functions
-export const datasetApi = {
-  getAllDatasets: async () => {
-    try {
-      const response = await axios.get(`${API_URL}/datasets`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching datasets:', error);
-      throw error;
-    }
+// Create axios instance
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
   },
-  
-  getDataset: async (id) => {
-    try {
-      const response = await axios.get(`${API_URL}/datasets/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching dataset:', error);
-      throw error;
-    }
-  },
-  
-  uploadDataset: async (fileData, fileName, userId = 1) => {
-    try {
-      const response = await axios.post(`${API_URL}/upload`, {
-        fileData,
-        fileName,
-        userId
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error uploading dataset:', error);
-      throw error;
-    }
+  timeout: 30000 // 30 seconds timeout
+});
+
+// Logger function that only logs in debug mode
+const log = (message, data) => {
+  if (DEBUG) {
+    console.log(message, data);
   }
 };
 
-// Transformation API functions
-export const transformationApi = {
-  getAllTransformations: async () => {
-    try {
-      const response = await axios.get(`${API_URL}/transformations`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching transformations:', error);
-      throw error;
-    }
-  },
-  
-  getDatasetTransformations: async (datasetId) => {
-    try {
-      const response = await axios.get(`${API_URL}/datasets/${datasetId}/transformations`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching dataset transformations:', error);
-      throw error;
-    }
-  },
-  
-  processTransformation: async (message, datasetId, userId = 1) => {
-    try {
-      const response = await axios.post(`${API_URL}/chat/transform`, {
-        message,
-        datasetId,
-        userId
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error processing transformation:', error);
-      throw error;
-    }
+// Error logger function that only logs in debug mode
+const logError = (message, error) => {
+  if (DEBUG) {
+    console.error(message, error);
   }
 };
 
-// Dashboard API functions
-export const dashboardApi = {
-  getDashboardData: async () => {
-    try {
-      const response = await axios.get(`${API_URL}/dashboard`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      throw error;
-    }
-  }
-};
-
-// Authentication API functions
-export const authApi = {
-  login: async (email, password) => {
-    try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        email,
-        password
-      });
-      
-      // Store token in local storage
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error during login:', error);
-      throw error;
-    }
-  },
-  
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-  },
-  
-  getCurrentUser: () => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
-    
-    try {
-      return JSON.parse(userStr);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      return null;
-    }
-  },
-  
-  isAuthenticated: () => {
-    return localStorage.getItem('token') !== null;
-  }
-};
-
-// Search API functions
-export const searchApi = {
-  search: async (query) => {
-    try {
-      const response = await axios.get(`${API_URL}/search`, {
-        params: { query }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error performing search:', error);
-      throw error;
-    }
-  }
-};
-
-// File handling utility functions
-export const fileUtils = {
-  readFile: (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        resolve(e.target.result);
-      };
-      
-      reader.onerror = (error) => {
-        reject(error);
-      };
-      
-      reader.readAsDataURL(file);
-    });
-  },
-  
-  downloadCSV: (data, filename = 'download.csv') => {
-    if (!data) return;
-    
-    // Convert to CSV if data is an array of objects
-    let csvContent = '';
-    
-    if (Array.isArray(data)) {
-      // Get headers
-      const headers = Object.keys(data[0] || {});
-      csvContent += headers.join(',') + '\n';
-      
-      // Add data rows
-      data.forEach(row => {
-        const values = headers.map(header => {
-          const value = row[header];
-          return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
-        });
-        csvContent += values.join(',') + '\n';
-      });
-    } else {
-      // Assume data is already CSV format
-      csvContent = data;
-    }
-    
-    // Create download link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-};
-
-// Set up axios interceptors to handle authentication
-axios.interceptors.request.use(
+// Add a request interceptor to include auth token in all requests
+api.interceptors.request.use(
   config => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -214,18 +37,275 @@ axios.interceptors.request.use(
     return config;
   },
   error => {
+    logError('API request error:', error);
     return Promise.reject(error);
   }
 );
 
-// Create a single export object for convenience
-const api = {
-  datasets: datasetApi,
-  transformations: transformationApi,
-  dashboard: dashboardApi,
-  auth: authApi,
-  search: searchApi,
-  files: fileUtils
+// Add a response interceptor for global error handling
+api.interceptors.response.use(
+  response => {
+    return response;
+  },
+  error => {
+    // Handle session expiration
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      // Check if it's not a login attempt
+      if (!error.config.url.includes('/auth/login')) {
+        // Clear localStorage and refresh page
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/auth/login';
+      }
+    }
+    
+    // Extract error message from response
+    const errorMessage = 
+      error.response?.data?.error || 
+      error.response?.data?.message || 
+      error.message || 
+      'Something went wrong';
+    
+    // Add the error message to the error object for easier access
+    error.displayMessage = errorMessage;
+    
+    // Log detailed error information in debug mode
+    logError('API response error:', {
+      status: error.response?.status,
+      message: errorMessage,
+      url: error.config?.url,
+      method: error.config?.method,
+      data: error.config?.data
+    });
+    
+    return Promise.reject(error);
+  }
+);
+
+// Auth API endpoints
+const auth = {
+  login: async (credentials) => {
+    const response = await api.post('/auth/login', credentials);
+    return response.data;
+  },
+  
+  register: async (userData) => {
+    const response = await api.post('/auth/register', userData);
+    return response.data;
+  },
+  
+  forgotPassword: async (email) => {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+  
+  resetPassword: async (data) => {
+    const response = await api.post('/auth/reset-password', data);
+    return response.data;
+  },
+  
+  verifyResetToken: async (token) => {
+    const response = await api.get(`/auth/reset-password/${token}/verify`);
+    return response.data;
+  },
+  
+  changePassword: async (data) => {
+    const response = await api.post('/auth/change-password', data);
+    return response.data;
+  },
+  
+  getProfile: async () => {
+    const response = await api.get('/auth/profile');
+    return response.data;
+  },
+  
+  updateProfile: async (profileData) => {
+    const response = await api.put('/auth/profile', profileData);
+    return response.data;
+  }
 };
 
-export default api;
+// Dataset API endpoints
+const datasets = {
+  getAll: async () => {
+    const response = await api.get('/datasets');
+    return response.data;
+  },
+  
+  getById: async (id) => {
+    const response = await api.get(`/datasets/${id}`);
+    return response.data;
+  },
+  
+  uploadBase64: async (fileData) => {
+    const response = await api.post('/datasets/upload', fileData);
+    return response.data;
+  },
+  
+  uploadFile: async (formData) => {
+    const response = await api.post('/datasets/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/datasets/${id}`);
+    return response.data;
+  },
+  
+  export: async (id, data) => {
+    const response = await api.post(`/datasets/${id}/export`, data, {
+      responseType: 'blob'
+    });
+    return response;
+  }
+};
+
+// Transformation API endpoints
+const transformations = {
+  getAll: async (datasetId) => {
+    const url = datasetId 
+      ? `/transformations?datasetId=${datasetId}` 
+      : '/transformations';
+    const response = await api.get(url);
+    return response.data;
+  },
+  
+  getById: async (id) => {
+    const response = await api.get(`/transformations/${id}`);
+    return response.data;
+  },
+  
+  create: async (transformation) => {
+    const response = await api.post('/transformations', transformation);
+    return response.data;
+  },
+  
+  update: async (id, transformation) => {
+    const response = await api.put(`/transformations/${id}`, transformation);
+    return response.data;
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/transformations/${id}`);
+    return response.data;
+  }
+};
+
+// Reports API endpoints
+const reports = {
+  getAll: async () => {
+    const response = await api.get('/reports');
+    return response.data;
+  },
+  
+  getById: async (id) => {
+    const response = await api.get(`/reports/${id}`);
+    return response.data;
+  },
+  
+  create: async (report) => {
+    const response = await api.post('/reports', report);
+    return response.data;
+  },
+  
+  update: async (id, report) => {
+    const response = await api.put(`/reports/${id}`, report);
+    return response.data;
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/reports/${id}`);
+    return response.data;
+  },
+  
+  export: async (id, format) => {
+    const response = await api.get(`/reports/${id}/export?format=${format}`, {
+      responseType: 'blob'
+    });
+    return response;
+  },
+  
+  share: async (id, shareData) => {
+    const response = await api.post(`/reports/${id}/share`, shareData);
+    return response.data;
+  }
+};
+
+// Dashboard API endpoints
+const dashboard = {
+  getSummary: async () => {
+    const response = await api.get('/dashboard/summary');
+    return response.data;
+  },
+  
+  getActivityLog: async (params) => {
+    const response = await api.get('/dashboard/activity', { params });
+    return response.data;
+  },
+  
+  getAnalytics: async (timeframe) => {
+    const response = await api.get(`/dashboard/analytics?timeframe=${timeframe}`);
+    return response.data;
+  }
+};
+
+// User management API endpoints (for admin)
+const users = {
+  getAll: async (params) => {
+    const response = await api.get('/users', { params });
+    return response.data;
+  },
+  
+  getById: async (id) => {
+    const response = await api.get(`/users/${id}`);
+    return response.data;
+  },
+  
+  create: async (userData) => {
+    const response = await api.post('/users', userData);
+    return response.data;
+  },
+  
+  update: async (id, userData) => {
+    const response = await api.put(`/users/${id}`, userData);
+    return response.data;
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/users/${id}`);
+    return response.data;
+  },
+  
+  updateRole: async (id, role) => {
+    const response = await api.patch(`/users/${id}/role`, { role });
+    return response.data;
+  }
+};
+
+// Settings API endpoints
+const settings = {
+  getAll: async () => {
+    const response = await api.get('/settings');
+    return response.data;
+  },
+  
+  update: async (settings) => {
+    const response = await api.put('/settings', settings);
+    return response.data;
+  }
+};
+
+// Export all API modules
+export default {
+  auth,
+  datasets,
+  transformations,
+  reports,
+  dashboard,
+  users,
+  settings
+};
