@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import apiService, { authAPI } from '../services/apiService';
+import { authService } from '../services/auth';
 
 // Initial state
 const initialState = {
@@ -152,8 +152,8 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: ActionTypes.LOGIN_START });
     
     try {
-      // Using our authAPI from updated apiService
-      const response = await authAPI.login(credentials);
+      // Using auth service
+      const response = await authService.login(credentials);
       const data = response.data;
       
       console.log('Login response:', data);
@@ -189,8 +189,8 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: ActionTypes.LOGIN_START });
     
     try {
-      // Using our authAPI from updated apiService
-      const response = await authAPI.register(userData);
+      // Using auth service
+      const response = await authService.register(userData);
       const data = response.data;
       
       console.log('Register response:', data);
