@@ -1,14 +1,16 @@
 services:
   - type: web
     name: bruno-ai-api
-    env: node
-    buildCommand: npm install
-    startCommand: node server.js
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
     envVars:
-      - key: PORT
-        value: 10000
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
       - key: JWT_SECRET
         generateValue: true
       - key: OPENAI_API_KEY
