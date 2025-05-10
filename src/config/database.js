@@ -9,10 +9,10 @@ const config = {
   dialect: 'postgres',
   logging: process.env.NODE_ENV !== 'production',
   dialectOptions: {
-    ssl: process.env.DB_SSL === 'true' ? {
+    ssl: process.env.DB_SSL === 'false' ? false : {
       require: true,
       rejectUnauthorized: false
-    } : false
+    }
   },
   pool: {
     max: 10,
@@ -22,18 +22,31 @@ const config = {
   }
 };
 
-const sequelize = new Sequelize(
-  config.database,
-  config.username,
-  config.password,
-  {
-    host: config.host,
-    dialect: config.dialect,
+// Use connection URL if provided, otherwise use individual params
+let sequelize;
+if (process.env.DB_URL) {
+  console.log('Using database connection URL');
+  sequelize = new Sequelize(process.env.DB_URL, {
+    dialect: 'postgres',
     logging: config.logging,
     dialectOptions: config.dialectOptions,
     pool: config.pool
-  }
-);
+  });
+} else {
+  console.log('Using individual database connection parameters');
+  sequelize = new Sequelize(
+    config.database,
+    config.username,
+    config.password,
+    {
+      host: config.host,
+      dialect: config.dialect,
+      logging: config.logging,
+      dialectOptions: config.dialectOptions,
+      pool: config.pool
+    }
+  );
+}
 
 // Test database connection
 const testConnection = async () => {
@@ -47,6 +60,10 @@ const testConnection = async () => {
       console.error(`Unable to connect to the database (${retries} retries left):`, error);
       retries -= 1;
       if (retries === 0) {
+        if (process.env.NODE_ENV === 'production') {
+          console.error('Failed to connect to database in production, but continuing anyway');
+          return false;
+        }
         return false;
       }
       // Wait before retrying
