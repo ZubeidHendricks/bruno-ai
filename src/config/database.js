@@ -11,7 +11,7 @@ const config = {
   dialectOptions: {
     ssl: process.env.DB_SSL === 'false' ? false : {
       require: true,
-      rejectUnauthorized: false
+      rejectUnauthorized: false // This is the key setting to fix the SSL issue
     }
   },
   pool: {
@@ -29,7 +29,12 @@ if (process.env.DB_URL) {
   sequelize = new Sequelize(process.env.DB_URL, {
     dialect: 'postgres',
     logging: config.logging,
-    dialectOptions: config.dialectOptions,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false // Disables certificate validation
+      }
+    },
     pool: config.pool
   });
 } else {

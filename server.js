@@ -13,6 +13,33 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Fix CORS issues - MUST be before any routes or middleware
+// Very permissive CORS for development and debugging
+app.use((req, res, next) => {
+  // Log the request for debugging
+  console.log(`Received ${req.method} request for ${req.url} from origin: ${req.headers.origin}`);
+  
+  // Set CORS headers
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Also use the cors middleware for good measure
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 // Add a root path endpoint for health checks and debugging
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -52,25 +79,9 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Simple CORS configuration - enable for all origins during debugging
-app.use(cors());
-
-// Provide more explicit CORS headers for troubleshooting
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
-});
-
 // Security middleware
 app.use(helmet({
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  contentSecurityPolicy: false, // Disable CSP for now to avoid issues
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
@@ -96,9 +107,7 @@ app.use('/api/', apiLimiter);
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 } else {
-  app.use(morgan('combined', {
-    skip: (req, res) => res.statusCode < 400 // Log only errors in production
-  }));
+  app.use(morgan('combined'));
 }
 
 // Middleware
@@ -114,6 +123,76 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
+});
+
+// Basic authentication endpoints for testing
+app.post('/api/auth/register', (req, res) => {
+  console.log('Register endpoint hit:', req.body);
+  
+  try {
+    const { username, email, password } = req.body;
+    
+    // Validate required fields
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username, email, and password are required'
+      });
+    }
+    
+    // Return success response
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      user: {
+        id: '12345',
+        username,
+        email
+      }
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Registration failed',
+      message: process.env.NODE_ENV === 'production' ? 'Registration failed' : error.message
+    });
+  }
+});
+
+app.post('/api/auth/login', (req, res) => {
+  console.log('Login endpoint hit:', req.body);
+  
+  try {
+    const { email, password } = req.body;
+    
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and password are required'
+      });
+    }
+    
+    // Return success response with token
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token: 'mock-jwt-token-for-testing',
+      user: {
+        id: '12345',
+        username: 'testuser',
+        email
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Login failed',
+      message: process.env.NODE_ENV === 'production' ? 'Login failed' : error.message
+    });
+  }
 });
 
 // API Routes

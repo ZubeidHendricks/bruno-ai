@@ -53,14 +53,16 @@ apiService.interceptors.response.use(
 );
 
 // Auth API functions
-const authAPI = {
+const auth = {
   register: (userData) => apiService.post('/auth/register', userData),
   login: (credentials) => apiService.post('/auth/login', credentials),
-  getUserProfile: (userId) => apiService.get(`/auth/users/${userId}`)
+  getProfile: () => apiService.get('/auth/profile')
 };
 
-// Export individual API modules
-export { authAPI };
+// Export API modules
+const api = {
+  auth
+};
 
 // Export the service for direct use
-export default apiService;
+export default api;

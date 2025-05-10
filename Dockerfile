@@ -14,6 +14,7 @@ COPY . .
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=10000
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 
 # Expose the port
 EXPOSE 10000
