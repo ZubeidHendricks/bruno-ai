@@ -13,3 +13,9 @@ services:
         value: 10000
       - key: JWT_SECRET
         generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false # Add your OpenAI API key in the Render dashboard
+      - key: DB_URL
+        sync: false
+      - key: DB_SSL
+        value: "true"

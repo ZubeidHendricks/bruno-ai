@@ -71,37 +71,79 @@ const processTransformation = async (req, res) => {
       dynamicTyping: true,
       skipEmptyLines: true
     });
-    
-    // Generate interpretation using OpenAI
-    const systemPrompt = `You are an AI assistant specialized in interpreting financial data transformation requests. 
-    Analyze the user's request and provide:
-    1. The intended operation (merge, filter, sort, remove duplicates, etc.)
-    2. The data columns involved
-    3. Any specific conditions or parameters
-    Format your response as a JSON object with the following structure:
-    {
-      "intent": string,
-      "operation": string,
-      "columns": array,
-      "conditions": object,
-      "explanation": string
-    }`;
-    
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message }
-      ],
-      response_format: { type: "json_object" }
-    });
-    
-    const interpretation = JSON.parse(response.choices[0].message.content);
-    
-    // Perform the actual transformation
+
+    let interpretation = null;
     let transformedData = parsedData.data;
     let transformMessage = "";
     
+    try {
+      // Generate interpretation using OpenAI - with error handling
+      const systemPrompt = `You are an AI assistant specialized in interpreting financial data transformation requests. 
+      Analyze the user's request and provide:
+      1. The intended operation (merge, filter, sort, remove duplicates, etc.)
+      2. The data columns involved
+      3. Any specific conditions or parameters
+      Format your response as a JSON object with the following structure:
+      {
+        "intent": string,
+        "operation": string,
+        "columns": array,
+        "conditions": object,
+        "explanation": string
+      }`;
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message }
+        ],
+        response_format: { type: "json_object" }
+      });
+      
+      interpretation = JSON.parse(response.choices[0].message.content);
+    } catch (error) {
+      console.error('OpenAI error:', error);
+      
+      // Fallback to basic intent parsing
+      console.log('Using fallback intent parsing for message:', message);
+      
+      // Very basic intent parsing as fallback
+      const lowercaseMsg = message.toLowerCase();
+      let operation = 'unknown';
+      let columns = [];
+      
+      // Extract column names - very basic approach
+      const potentialColumns = Object.keys(parsedData.data[0] || {});
+      potentialColumns.forEach(col => {
+        if (lowercaseMsg.includes(col.toLowerCase())) {
+          columns.push(col);
+        }
+      });
+      
+      // Attempt to identify operation
+      if (lowercaseMsg.includes('filter') || lowercaseMsg.includes('where') || lowercaseMsg.includes('only')) {
+        operation = 'filter';
+      } else if (lowercaseMsg.includes('sort') || lowercaseMsg.includes('order') || lowercaseMsg.includes('arrange')) {
+        operation = 'sort';
+      } else if (lowercaseMsg.includes('duplicates') || lowercaseMsg.includes('unique')) {
+        operation = 'remove_duplicates';
+      } else if (lowercaseMsg.includes('calculate') || lowercaseMsg.includes('sum') || lowercaseMsg.includes('average')) {
+        operation = 'calculate';
+      }
+      
+      interpretation = {
+        intent: message,
+        operation: operation,
+        columns: columns,
+        conditions: {},
+        explanation: "Fallback interpretation (OpenAI unavailable)"
+      };
+      
+      transformMessage = "Using basic interpretation (OpenAI API not available)";
+    }
+    
+    // Perform the actual transformation
     switch (interpretation.operation) {
       case 'filter':
         const column = interpretation.conditions?.column;
@@ -209,43 +251,60 @@ const processTransformation = async (req, res) => {
         break;
     }
     
-    // Store the transformation in the database
-    const transformation = await models.DataTransformation.create({
-      name: interpretation.intent,
-      operation: interpretation.operation,
-      parameters: JSON.stringify(interpretation.conditions || {}),
-      originalDataHash: dataset.dataHash,
-      resultPreview: JSON.stringify(transformedData.slice(0, 5)),
-      status: 'completed',
-      executionTime: 1000, // Mock execution time
-      userId,
-      datasetId: dataset.id
-    });
-    
-    // Track in timeline
-    await models.TimelineEvent.create({
-      userId,
-      sessionId: `session_${Date.now()}`,
-      stepKey: 'DATA_TRANSFORMATION',
-      datasetId: dataset.id,
-      details: JSON.stringify({
+    try {
+      // Store the transformation in the database
+      const transformation = await models.DataTransformation.create({
+        name: interpretation.intent,
         operation: interpretation.operation,
-        resultRowCount: transformedData.length
-      }),
-      timestamp: new Date()
-    });
-    
-    res.json({
-      success: true,
-      message: transformMessage,
-      interpretation,
-      transformation,
-      data: transformedData,
-      rowCount: {
-        original: parsedData.data.length,
-        transformed: transformedData.length
-      }
-    });
+        parameters: JSON.stringify(interpretation.conditions || {}),
+        originalDataHash: dataset.dataHash,
+        resultPreview: JSON.stringify(transformedData.slice(0, 5)),
+        status: 'completed',
+        executionTime: 1000, // Mock execution time
+        userId,
+        datasetId: dataset.id
+      });
+      
+      // Track in timeline
+      await models.TimelineEvent.create({
+        userId,
+        sessionId: `session_${Date.now()}`,
+        stepKey: 'DATA_TRANSFORMATION',
+        datasetId: dataset.id,
+        details: JSON.stringify({
+          operation: interpretation.operation,
+          resultRowCount: transformedData.length
+        }),
+        timestamp: new Date()
+      });
+      
+      res.json({
+        success: true,
+        message: transformMessage,
+        interpretation,
+        transformation,
+        data: transformedData,
+        rowCount: {
+          original: parsedData.data.length,
+          transformed: transformedData.length
+        }
+      });
+    } catch (error) {
+      // Handle database errors gracefully
+      console.error('Database error:', error);
+      
+      // Still return transformation results even if saving failed
+      res.json({
+        success: true,
+        message: transformMessage + " (Note: Could not save transformation to database)",
+        interpretation,
+        data: transformedData,
+        rowCount: {
+          original: parsedData.data.length,
+          transformed: transformedData.length
+        }
+      });
+    }
   } catch (error) {
     console.error('Error processing transformation:', error);
     res.status(500).json({ 
