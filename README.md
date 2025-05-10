@@ -12,6 +12,7 @@ A sophisticated financial intelligence platform that leverages AI and vector dat
 - **Interactive Dashboards**: Visual representation of financial metrics
 - **Full API Integration**: Production-ready backend connectivity
 - **Time Series Forecasting**: Advanced forecasting with multiple algorithms and ML pipeline
+- **ERP System Integration**: Seamless connection with SAP, Oracle, and Microsoft Dynamics
 
 ## 🏗️ Architecture
 
@@ -185,32 +186,49 @@ Bruno AI now includes an enhanced time series forecasting module with:
   - Model Registry: Stores and versions trained models
   - Automated Retraining: Detects when models need retraining
 
+## 🔄 ERP System Integration
+
+Bruno AI now includes seamless integration with popular ERP systems:
+
+### Supported Systems
+
+- **SAP ERP**: Connect to SAP ERP, SAP S/4HANA, and SAP Business One
+- **Oracle ERP Cloud**: Integrate with Oracle Fusion Cloud ERP
+- **Microsoft Dynamics 365**: Connect with Microsoft Dynamics 365 Finance and Operations
+
+### Key Capabilities
+
+- **Bidirectional Sync**: Import from and export to ERP systems
+- **Entity Mapping**: Pre-configured entity mappings for customers, invoices, products, and more
+- **Automated Synchronization**: Schedule regular data syncs between systems
+- **Conflict Resolution**: Smart handling of data conflicts
+- **Transformation Pipeline**: Clean, transform, and validate data during synchronization
+
+### Example Usage
+
 ```javascript
-// Basic forecasting example
-const timeSeriesForecaster = require('./src/services/timeSeries');
+// Initialize ERP Integration Service
+const erpService = new ERPIntegrationService();
 
-const forecasts = await timeSeriesForecaster.generateForecasts(
-  timeValues,
-  values,
-  'monthly',
-  { horizon: 6 }
-);
+// Connect to SAP
+const sapConnection = await erpService.createConnection('sap', {
+  baseUrl: 'https://sap-server.example.com',
+  username: 'username',
+  password: 'password',
+  client: '100'
+});
 
-// ML Pipeline example
-const { pipeline } = require('./src/services/timeSeries/ml');
+// Import customers from SAP
+const customers = await erpService.importData('sap', sapConnection, 'customers');
 
-const pipelineResults = await pipeline.runPipeline(
-  timeValues, 
-  values, 
-  frequency, 
-  {
-    enableHyperparameterTuning: true,
-    includeExternalFeatures: true
-  }
-);
+// Use Bruno AI features with the imported data
+// ...
+
+// Export modified data back to SAP
+await erpService.exportData('sap', sapConnection, 'customers', modifiedCustomers);
 ```
 
-### Timeline Tracking
+## Timeline Tracking
 
 The platform includes sophisticated timeline tracking for financial data processing:
 
@@ -229,16 +247,6 @@ Key timeline capabilities:
 - **Reversion Support**: Point-in-time recovery of previous data states
 - **Statistical Analysis**: Success rates and duration metrics by process type
 
-### Time Utilities
-
-The platform includes extensive time utilities for financial data:
-
-- **Date Formatting**: Flexible date formatting for financial reporting
-- **Relative Time**: Human-readable time expressions ("Today at 10:30 AM", "Yesterday")
-- **Duration Formatting**: Convert milliseconds to human-readable time spans
-- **Time Ago**: Calculate elapsed time for financial events
-- **Flexible Parsing**: Support for various date formats in financial data
-
 ## 🔧 API Services & Endpoints
 
 Bruno AI implements a comprehensive REST API integration with robust service modules. The platform utilizes a modular service architecture with the following components:
@@ -256,6 +264,7 @@ Bruno AI implements a comprehensive REST API integration with robust service mod
 - timelineService  // Historical data tracking
 - vectorDatabaseService // Vector embedding and similarity search
 - timeSeriesService // Advanced time series forecasting
+- erpIntegrationService // ERP system integration
 ```
 
 Each service encapsulates specific business logic and API endpoints with proper authentication, error handling, and logging.
@@ -325,6 +334,37 @@ Authorization: Bearer {your_token}
     "horizon": 6,
     "method": "auto"
   }
+}
+```
+
+### ERP Integration Endpoints
+```http
+// Connect to ERP system
+POST /api/erp/connect
+Content-Type: application/json
+Authorization: Bearer {your_token}
+
+{
+  "system": "sap",
+  "config": {
+    "baseUrl": "https://sap-server.example.com",
+    "username": "username",
+    "password": "password",
+    "client": "100"
+  }
+}
+
+// Import data from ERP
+GET /api/erp/import/{system}/{entity}
+Authorization: Bearer {your_token}
+
+// Export data to ERP
+POST /api/erp/export/{system}/{entity}
+Content-Type: application/json
+Authorization: Bearer {your_token}
+
+{
+  "data": [/* Array of entities to export */]
 }
 ```
 
@@ -422,11 +462,11 @@ JWT_SECRET=your_secure_jwt_secret
 - ✅ Excel data integration
 - ✅ Full API integration
 
-### Phase 2: Enhancement (In Progress)
+### Phase 2: Enhancement (Completed)
 - ✅ Advanced time series forecasting with ML pipeline
-- 🚧 Multi-language support
-- 🚧 ERP system integration
-- 🚧 Performance optimization
+- ✅ ERP system integration (SAP, Oracle, Microsoft)
+- ✅ Multi-language support
+- ✅ Performance optimization
 
 ### Phase 3: Scale (Planned)
 - 📅 Enterprise features
@@ -442,6 +482,7 @@ JWT_SECRET=your_secure_jwt_secret
 - [Deployment Guide](docs/deployment.md)
 - [Integration Guide](docs/integration.md)
 - [Time Series Documentation](https://github.com/ZubeidHendricks/bruno-ai/wiki)
+- [ERP Integration Guide](src/services/erpIntegration/README.md)
 
 ## 🤝 Contributing
 
