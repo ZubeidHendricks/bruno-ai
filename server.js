@@ -64,8 +64,17 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
+// CORS configuration
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'https://bruno-ai-olive.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'build')));

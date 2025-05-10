@@ -6,20 +6,25 @@
       "use": "@vercel/node"
     },
     {
+      "src": "server.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build"
+        "distDir": "build",
+        "buildCommand": "npm run build"
       }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/server.js"
     },
     {
-      "src": "/(.*\\.(js|css|png|jpg|gif|svg|ico))",
+      "src": "/(.*\\.(js|css|png|jpg|gif|svg|ico|json))",
       "dest": "/$1"
     },
     {

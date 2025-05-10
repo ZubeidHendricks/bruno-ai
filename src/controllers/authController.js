@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { Sequelize } = require('sequelize');
 const models = require('../database/models');
 
 // Handle user login
