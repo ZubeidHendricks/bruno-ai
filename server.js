@@ -40,10 +40,10 @@ console.log('========== ENVIRONMENT INFO ==========');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', PORT);
 console.log('CORS_ORIGIN:', process.env.CORS_ORIGIN);
-console.log('DB_HOST:', process.env.DB_HOST ? '***SET***' : 'NOT SET');
+console.log('DB_HOST:', process.env.POSTGRES_HOST ? '***SET***' : 'NOT SET');
+console.log('DB_USER:', process.env.POSTGRES_USER ? '***SET***' : 'NOT SET');
 console.log('DB_URL:', process.env.DB_URL ? '***SET***' : 'NOT SET');
 console.log('DB_SSL:', process.env.DB_SSL);
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? '***SET***' : 'NOT SET');
 console.log('=======================================');
 
 // Directory for data storage
@@ -133,17 +133,28 @@ if (process.env.NODE_ENV === 'production') {
 // Error handling middleware
 app.use(errorHandler);
 
+// Define server variable before using it
+let server;
+
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
-  // Close server and database connections
-  server.close(() => {
-    console.log('HTTP server closed');
+  if (server) {
+    // Only close the server if it exists
+    server.close(() => {
+      console.log('HTTP server closed');
+      sequelize.close().then(() => {
+        console.log('Database connections closed');
+        process.exit(0);
+      });
+    });
+  } else {
+    console.log('No HTTP server to close');
     sequelize.close().then(() => {
       console.log('Database connections closed');
       process.exit(0);
     });
-  });
+  }
 });
 
 // Start server
@@ -166,7 +177,7 @@ const startServer = async () => {
       console.log('Database tables synced');
     }
     
-    const server = app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
       console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
     });
     
@@ -180,7 +191,7 @@ const startServer = async () => {
       process.exit(1);
     } else {
       // Try to start server anyway in production
-      const server = app.listen(PORT, () => {
+      server = app.listen(PORT, () => {
         console.log(`Server running in production mode on port ${PORT} (with errors)`);
       });
       return server;
@@ -189,6 +200,6 @@ const startServer = async () => {
 };
 
 // Start the server and export it for testing
-const server = startServer();
+server = startServer();
 
 module.exports = server;
