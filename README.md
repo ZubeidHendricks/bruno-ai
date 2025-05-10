@@ -11,6 +11,7 @@ A sophisticated financial intelligence platform that leverages AI and vector dat
 - **Multi-system Integration**: Connect with Excel, SAP, Salesforce
 - **Interactive Dashboards**: Visual representation of financial metrics
 - **Full API Integration**: Production-ready backend connectivity
+- **Time Series Forecasting**: Advanced forecasting with multiple algorithms and ML pipeline
 
 ## 🏗️ Architecture
 
@@ -157,12 +158,57 @@ The platform provides comprehensive time series functionality:
 - **Trend Detection**: Automatically identifies upward/downward trends in financial data
 - **Growth Rate Calculation**: Calculates period-over-period growth rates and compound growth
 - **Volatility Analysis**: Measures data volatility and statistical variance
-- **Forecasting**: Linear regression and time-based predictions with confidence scoring
+- **Forecasting**: Multiple advanced algorithms with ML pipeline integration
 - **Anomaly Detection**: Z-score based outlier identification in time series
 - **Pattern Recognition**: Automatically detects:
   - Seasonality patterns
   - Cyclical trends with peak/trough identification
   - Trend breaks and regime changes
+
+### Advanced Time Series Forecasting
+
+Bruno AI now includes an enhanced time series forecasting module with:
+
+- **Multiple Forecasting Algorithms**:
+  - Naive Forecast: Uses the last observed value for simple forecasts
+  - Moving Average: Smooths out short-term fluctuations
+  - Linear Regression: Captures linear trends in your data
+  - Exponential Smoothing: Gives more weight to recent observations
+  - Double Exponential Smoothing: Handles both level and trend components
+  - Seasonal Naive: Great for data with strong seasonal patterns
+  - Holt-Winters: Triple exponential smoothing for complex seasonal data
+
+- **ML Pipeline Integration**:
+  - Feature Engineering: Extracts meaningful features from time series data
+  - Hyperparameter Tuning: Automatically finds optimal model parameters
+  - Cross-Validation: Robust validation techniques for time series
+  - Model Registry: Stores and versions trained models
+  - Automated Retraining: Detects when models need retraining
+
+```javascript
+// Basic forecasting example
+const timeSeriesForecaster = require('./src/services/timeSeries');
+
+const forecasts = await timeSeriesForecaster.generateForecasts(
+  timeValues,
+  values,
+  'monthly',
+  { horizon: 6 }
+);
+
+// ML Pipeline example
+const { pipeline } = require('./src/services/timeSeries/ml');
+
+const pipelineResults = await pipeline.runPipeline(
+  timeValues, 
+  values, 
+  frequency, 
+  {
+    enableHyperparameterTuning: true,
+    includeExternalFeatures: true
+  }
+);
+```
 
 ### Timeline Tracking
 
@@ -209,6 +255,7 @@ Bruno AI implements a comprehensive REST API integration with robust service mod
 - openaiService    // AI-powered analysis and NLP
 - timelineService  // Historical data tracking
 - vectorDatabaseService // Vector embedding and similarity search
+- timeSeriesService // Advanced time series forecasting
 ```
 
 Each service encapsulates specific business logic and API endpoints with proper authentication, error handling, and logging.
@@ -261,6 +308,23 @@ Authorization: Bearer {your_token}
   "datasetId": "dataset-id",
   "timeColumn": "date",
   "valueColumn": "revenue"
+}
+```
+
+### Time Series Forecasting Endpoint
+```http
+POST /api/timeseries/forecast
+Content-Type: application/json
+Authorization: Bearer {your_token}
+
+{
+  "timeValues": ["2023-01-01", "2023-02-01", ...],
+  "values": [100, 120, ...],
+  "frequency": "monthly",
+  "options": {
+    "horizon": 6,
+    "method": "auto"
+  }
 }
 ```
 
@@ -359,7 +423,7 @@ JWT_SECRET=your_secure_jwt_secret
 - ✅ Full API integration
 
 ### Phase 2: Enhancement (In Progress)
-- 🚧 Advanced AI forecasting
+- ✅ Advanced time series forecasting with ML pipeline
 - 🚧 Multi-language support
 - 🚧 ERP system integration
 - 🚧 Performance optimization
@@ -377,6 +441,7 @@ JWT_SECRET=your_secure_jwt_secret
 - [User Guide](docs/user-guide.md)
 - [Deployment Guide](docs/deployment.md)
 - [Integration Guide](docs/integration.md)
+- [Time Series Documentation](https://github.com/ZubeidHendricks/bruno-ai/wiki)
 
 ## 🤝 Contributing
 
