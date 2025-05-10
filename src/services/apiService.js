@@ -1,27 +1,25 @@
 import axios from 'axios';
 
+// Get API URL from environment variable or use default
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+// Log API URL for debugging
+console.log('API URL:', API_URL);
+
 // Create an axios instance with defaults
 const apiService = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: API_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false // Set to false to avoid CORS preflight issues
+  withCredentials: false // Important to avoid CORS preflight issues
 });
 
-// Add request interceptor to add auth token if available
+// Add request interceptor for debugging
 apiService.interceptors.request.use(
   (config) => {
-    // Log the request for debugging
-    console.log(`Making ${config.method.toUpperCase()} request to ${config.url}`);
-    
-    // Get token from localStorage if available
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
+    console.log(`Sending ${config.method.toUpperCase()} request to ${config.url}`);
     return config;
   },
   (error) => {
@@ -33,50 +31,36 @@ apiService.interceptors.request.use(
 // Add response interceptor for error handling
 apiService.interceptors.response.use(
   (response) => {
+    console.log(`Received response from ${response.config.url}:`, response.status);
     return response;
   },
   (error) => {
-    // Log the error for debugging
     console.error('API Error:', error.message);
     
-    // Handle specific error cases
-    if (error.response) {
-      // The server responded with a status code outside the 2xx range
-      console.error('Response error:', error.response.status, error.response.data);
-      
-      // Handle authentication errors
-      if (error.response.status === 401) {
-        // Clear token and redirect to login
-        localStorage.removeItem('authToken');
-        // Only redirect if not already on login page
-        if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
-        }
-      }
-      
-      // Return the error response for handling in components
-      return Promise.reject(error.response);
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error('Network error - no response received');
-      
-      // Create a custom error object for network issues
-      const networkError = {
+    // For network errors or CORS issues
+    if (!error.response) {
+      return Promise.reject({
         status: 0,
         data: {
           error: 'Network Error',
-          message: 'Could not connect to the server. Please check your internet connection.'
+          message: 'Could not connect to the server. Please check your internet connection or server status.'
         }
-      };
-      
-      return Promise.reject(networkError);
-    } else {
-      // Something happened in setting up the request
-      console.error('Request setup error:', error.message);
-      return Promise.reject(error);
+      });
     }
+    
+    return Promise.reject(error);
   }
 );
 
-// Export the service
+// Auth API functions
+const authAPI = {
+  register: (userData) => apiService.post('/auth/register', userData),
+  login: (credentials) => apiService.post('/auth/login', credentials),
+  getUserProfile: (userId) => apiService.get(`/auth/users/${userId}`)
+};
+
+// Export individual API modules
+export { authAPI };
+
+// Export the service for direct use
 export default apiService;

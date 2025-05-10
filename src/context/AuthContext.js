@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import apiService from '../services/apiService';
+import apiService, { authAPI } from '../services/apiService';
 
 // Initial state
 const initialState = {
@@ -119,13 +119,17 @@ export const AuthProvider = ({ children }) => {
         const token = localStorage.getItem('token');
         
         if (token) {
-          // Get user profile data from the API
-          const userData = await apiService.auth.getProfile();
-          
-          dispatch({ 
-            type: ActionTypes.INIT_SUCCESS, 
-            payload: userData.user 
-          });
+          // Get user data from localStorage as fallback
+          const userJson = localStorage.getItem('user');
+          if (userJson) {
+            const userData = JSON.parse(userJson);
+            dispatch({ 
+              type: ActionTypes.INIT_SUCCESS, 
+              payload: userData
+            });
+          } else {
+            dispatch({ type: ActionTypes.INIT_FAILURE });
+          }
         } else {
           dispatch({ type: ActionTypes.INIT_FAILURE });
         }
@@ -148,28 +152,33 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: ActionTypes.LOGIN_START });
     
     try {
-      const response = await apiService.auth.login(credentials);
+      // Using our authAPI from updated apiService
+      const response = await authAPI.login(credentials);
+      const data = response.data;
+      
+      console.log('Login response:', data);
       
       // Store token in localStorage
-      if (response.token) {
-        localStorage.setItem('token', response.token);
+      if (data.token) {
+        localStorage.setItem('token', data.token);
         
         // Store user data
-        if (response.user) {
-          localStorage.setItem('user', JSON.stringify(response.user));
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
         }
       }
       
       dispatch({ 
         type: ActionTypes.LOGIN_SUCCESS, 
-        payload: response.user 
+        payload: data.user 
       });
       
-      return response;
+      return data;
     } catch (error) {
+      console.error('Login error:', error);
       dispatch({ 
         type: ActionTypes.LOGIN_FAILURE, 
-        payload: error.displayMessage || 'Login failed. Please try again.' 
+        payload: error.data?.error || 'Login failed. Please try again.' 
       });
       throw error;
     }
@@ -180,12 +189,17 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: ActionTypes.LOGIN_START });
     
     try {
-      const response = await apiService.auth.register(userData);
-      return response;
+      // Using our authAPI from updated apiService
+      const response = await authAPI.register(userData);
+      const data = response.data;
+      
+      console.log('Register response:', data);
+      return data;
     } catch (error) {
+      console.error('Register error:', error);
       dispatch({ 
         type: ActionTypes.LOGIN_FAILURE, 
-        payload: error.displayMessage || 'Registration failed. Please try again.' 
+        payload: error.data?.error || 'Registration failed. Please try again.' 
       });
       throw error;
     }
@@ -198,84 +212,12 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: ActionTypes.LOGOUT });
   };
 
-  // Update user profile
-  const updateProfile = async (profileData) => {
-    dispatch({ type: ActionTypes.PROFILE_LOADING });
-    
-    try {
-      const response = await apiService.auth.updateProfile(profileData);
-      
-      // Update localStorage
-      if (response.user) {
-        localStorage.setItem('user', JSON.stringify(response.user));
-      }
-      
-      dispatch({ 
-        type: ActionTypes.PROFILE_SUCCESS, 
-        payload: response.user 
-      });
-      
-      return response;
-    } catch (error) {
-      dispatch({ 
-        type: ActionTypes.PROFILE_FAILURE, 
-        payload: error.displayMessage || 'Failed to update profile' 
-      });
-      throw error;
-    }
-  };
-
-  // Change password
-  const changePassword = async (passwordData) => {
-    try {
-      const response = await apiService.auth.changePassword(passwordData);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  // Forgot password
-  const forgotPassword = async (email) => {
-    try {
-      const response = await apiService.auth.forgotPassword(email);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  // Reset password
-  const resetPassword = async (data) => {
-    try {
-      const response = await apiService.auth.resetPassword(data);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  // Verify reset token
-  const verifyResetToken = async (token) => {
-    try {
-      const response = await apiService.auth.verifyResetToken(token);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  };
-
   // Context value
   const value = {
     ...state,
     login,
     register,
-    logout,
-    updateProfile,
-    changePassword,
-    forgotPassword,
-    resetPassword,
-    verifyResetToken
+    logout
   };
 
   return (
