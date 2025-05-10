@@ -1,17 +1,28 @@
 const { Sequelize } = require('sequelize');
 
-// Database connection
+// Debug env variables (masking sensitive info)
+console.log('========== DATABASE CONNECTION CONFIG ==========');
+console.log('DB_URL:', process.env.DB_URL ? '***PROVIDED***' : '***MISSING***');
+console.log('POSTGRES_USER:', process.env.POSTGRES_USER || '***MISSING***');
+console.log('POSTGRES_PASSWORD:', process.env.POSTGRES_PASSWORD ? '***PROVIDED***' : '***MISSING***');
+console.log('POSTGRES_HOST:', process.env.POSTGRES_HOST || '***MISSING***');
+console.log('POSTGRES_DATABASE:', process.env.POSTGRES_DATABASE || '***MISSING***');
+console.log('DB_SSL:', process.env.DB_SSL || 'true');
+console.log('=============================================');
+
+// Database connection - Supabase specific configuration
 const config = {
-  username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database: process.env.DB_NAME || 'bruno_ai_db',
-  host: process.env.DB_HOST || 'localhost',
+  username: process.env.POSTGRES_USER || 'postgres.vatitwmdtipuemrvxpne',
+  password: process.env.POSTGRES_PASSWORD || '',
+  database: process.env.POSTGRES_DATABASE || 'postgres',
+  host: process.env.POSTGRES_HOST || 'aws-0-us-east-1.pooler.supabase.com',
+  port: 6543, // Supabase pooler port
   dialect: 'postgres',
   logging: process.env.NODE_ENV !== 'production',
   dialectOptions: {
-    ssl: process.env.DB_SSL === 'false' ? false : {
+    ssl: {
       require: true,
-      rejectUnauthorized: false // This is the key setting to fix the SSL issue
+      rejectUnauthorized: false
     }
   },
   pool: {
@@ -24,6 +35,7 @@ const config = {
 
 // Use connection URL if provided, otherwise use individual params
 let sequelize;
+
 if (process.env.DB_URL) {
   console.log('Using database connection URL');
   sequelize = new Sequelize(process.env.DB_URL, {
@@ -32,7 +44,7 @@ if (process.env.DB_URL) {
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false // Disables certificate validation
+        rejectUnauthorized: false
       }
     },
     pool: config.pool
@@ -45,6 +57,7 @@ if (process.env.DB_URL) {
     config.password,
     {
       host: config.host,
+      port: config.port,
       dialect: config.dialect,
       logging: config.logging,
       dialectOptions: config.dialectOptions,
