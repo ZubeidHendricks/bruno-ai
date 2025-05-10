@@ -3,9 +3,9 @@ const { DataTypes } = require('sequelize');
 module.exports = (sequelize) => {
   const FinancialDataset = sequelize.define('FinancialDataset', {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
     },
     name: {
       type: DataTypes.STRING,
@@ -15,35 +15,55 @@ module.exports = (sequelize) => {
       type: DataTypes.TEXT
     },
     sourceType: {
-      type: DataTypes.ENUM('upload', 'integration', 'generated'),
-      defaultValue: 'upload'
+      type: DataTypes.STRING,
+      allowNull: false
     },
     format: {
       type: DataTypes.STRING,
       allowNull: false
     },
     columns: {
-      type: DataTypes.JSONB,
-      comment: 'Schema of the dataset columns'
+      type: DataTypes.TEXT
     },
     rowCount: {
-      type: DataTypes.INTEGER
+      type: DataTypes.INTEGER,
+      defaultValue: 0
     },
     dataHash: {
-      type: DataTypes.STRING,
-      comment: 'Hash of data for integrity verification'
+      type: DataTypes.STRING
     },
     storageKey: {
-      type: DataTypes.STRING,
-      comment: 'Key for retrieving the actual data from storage'
+      type: DataTypes.STRING
     },
-    isPublic: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false
+    userId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'Users',
+        key: 'id'
+      }
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
     }
   }, {
-    timestamps: true
+    tableName: 'FinancialDatasets' // Important: Match the SQL table name
   });
+
+  FinancialDataset.associate = (models) => {
+    FinancialDataset.belongsTo(models.User, { foreignKey: 'userId' });
+    FinancialDataset.hasMany(models.DataTransformation, { foreignKey: 'datasetId' });
+    FinancialDataset.hasMany(models.TimelineEvent, { foreignKey: 'datasetId' });
+    FinancialDataset.hasMany(models.VectorEmbedding, { foreignKey: 'datasetId' });
+    FinancialDataset.hasMany(models.AnalysisReport, { foreignKey: 'datasetId' });
+    FinancialDataset.hasMany(models.TimeSeriesModel, { foreignKey: 'datasetId' });
+  };
 
   return FinancialDataset;
 };

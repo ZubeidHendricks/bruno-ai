@@ -3,40 +3,53 @@ const { DataTypes } = require('sequelize');
 module.exports = (sequelize) => {
   const User = sequelize.define('User', {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    username: {
+      type: DataTypes.STRING,
+      allowNull: false
     },
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true
-      }
+      unique: true
     },
-    fullName: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    passwordHash: {
+    password: {
       type: DataTypes.STRING,
       allowNull: false
     },
     role: {
-      type: DataTypes.ENUM('admin', 'analyst', 'viewer'),
-      defaultValue: 'analyst'
+      type: DataTypes.STRING,
+      defaultValue: 'user'
     },
     lastLogin: {
       type: DataTypes.DATE
     },
-    apiKey: {
-      type: DataTypes.STRING,
-      unique: true
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
     }
   }, {
-    timestamps: true
+    tableName: 'Users' // Important: Match the SQL table name
   });
+
+  User.associate = (models) => {
+    User.hasMany(models.FinancialDataset, { foreignKey: 'userId' });
+    User.hasMany(models.DataTransformation, { foreignKey: 'userId' });
+    User.hasMany(models.TimelineEvent, { foreignKey: 'userId' });
+    User.hasMany(models.AnalysisReport, { foreignKey: 'userId' });
+    User.hasMany(models.ApiKey, { foreignKey: 'userId' });
+    User.hasMany(models.ErpConnection, { foreignKey: 'userId' });
+    User.hasMany(models.DashboardSetting, { foreignKey: 'userId' });
+  };
 
   return User;
 };

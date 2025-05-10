@@ -1,101 +1,66 @@
-const { Model, DataTypes } = require('sequelize');
+const { DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-  class TimelineEvent extends Model {
-    static associate(models) {
-      // Associate with user
-      TimelineEvent.belongsTo(models.User, {
-        foreignKey: 'userId',
-        as: 'user'
-      });
-      
-      // Associate with dataset
-      TimelineEvent.belongsTo(models.FinancialDataset, {
-        foreignKey: 'datasetId',
-        as: 'dataset'
-      });
-      
-      // Associate with transformation
-      TimelineEvent.belongsTo(models.DataTransformation, {
-        foreignKey: 'transformationId',
-        as: 'transformation'
-      });
-    }
-  }
-  
-  TimelineEvent.init({
+  const TimelineEvent = sequelize.define('TimelineEvent', {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'Users',
+        key: 'id'
+      }
+    },
+    sessionId: {
+      type: DataTypes.STRING
+    },
+    stepKey: {
+      type: DataTypes.STRING,
       allowNull: false
     },
     datasetId: {
-      type: DataTypes.UUID,
-      allowNull: true
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'FinancialDatasets',
+        key: 'id'
+      }
     },
     transformationId: {
-      type: DataTypes.UUID,
-      allowNull: true
-    },
-    sessionId: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      comment: 'For grouping events in the same session'
-    },
-    step: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      comment: 'Step number in the process (1-8)'
-    },
-    title: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      comment: 'Name of the step (e.g., "Data Ingestion")'
-    },
-    description: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      comment: 'Brief description of the step'
+      references: {
+        model: 'DataTransformations',
+        key: 'id'
+      }
     },
     details: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      comment: 'Detailed information about the step'
+      type: DataTypes.TEXT
     },
-    status: {
-      type: DataTypes.ENUM('pending', 'in_progress', 'completed', 'failed'),
-      defaultValue: 'completed',
-      allowNull: false
+    timestamp: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW
     },
-    duration: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      comment: 'Duration in milliseconds'
-    },
-    startTime: {
+    createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW
     },
-    endTime: {
+    updatedAt: {
       type: DataTypes.DATE,
-      allowNull: true
-    },
-    metadata: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      comment: 'Additional contextual data'
+      allowNull: false,
+      defaultValue: DataTypes.NOW
     }
   }, {
-    sequelize,
-    modelName: 'TimelineEvent',
-    tableName: 'timeline_events',
-    timestamps: true
+    tableName: 'TimelineEvents' // Important: Match the SQL table name
   });
-  
+
+  TimelineEvent.associate = (models) => {
+    TimelineEvent.belongsTo(models.User, { foreignKey: 'userId' });
+    TimelineEvent.belongsTo(models.FinancialDataset, { foreignKey: 'datasetId' });
+    TimelineEvent.belongsTo(models.DataTransformation, { foreignKey: 'transformationId' });
+  };
+
   return TimelineEvent;
 };

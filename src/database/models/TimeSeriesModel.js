@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-  const DataTransformation = sequelize.define('DataTransformation', {
+  const TimeSeriesModel = sequelize.define('TimeSeriesModel', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -14,7 +14,7 @@ module.exports = (sequelize) => {
     description: {
       type: DataTypes.TEXT
     },
-    operation: {
+    algorithm: {
       type: DataTypes.STRING,
       allowNull: false
     },
@@ -22,8 +22,11 @@ module.exports = (sequelize) => {
       type: DataTypes.TEXT,
       allowNull: false
     },
-    resultPreview: {
+    metrics: {
       type: DataTypes.TEXT
+    },
+    modelPath: {
+      type: DataTypes.STRING
     },
     datasetId: {
       type: DataTypes.INTEGER,
@@ -50,15 +53,13 @@ module.exports = (sequelize) => {
       defaultValue: DataTypes.NOW
     }
   }, {
-    tableName: 'DataTransformations' // Important: Match the SQL table name
+    tableName: 'TimeSeriesModels' // Important: Match the SQL table name
   });
 
-  DataTransformation.associate = (models) => {
-    DataTransformation.belongsTo(models.FinancialDataset, { foreignKey: 'datasetId' });
-    DataTransformation.belongsTo(models.User, { foreignKey: 'userId' });
-    DataTransformation.hasMany(models.TimelineEvent, { foreignKey: 'transformationId' });
-    DataTransformation.hasMany(models.AnalysisReport, { foreignKey: 'transformationId' });
+  TimeSeriesModel.associate = (models) => {
+    TimeSeriesModel.belongsTo(models.User, { foreignKey: 'userId' });
+    TimeSeriesModel.belongsTo(models.FinancialDataset, { foreignKey: 'datasetId' });
   };
 
-  return DataTransformation;
+  return TimeSeriesModel;
 };

@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-  const DataTransformation = sequelize.define('DataTransformation', {
+  const AnalysisReport = sequelize.define('AnalysisReport', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -14,21 +14,25 @@ module.exports = (sequelize) => {
     description: {
       type: DataTypes.TEXT
     },
-    operation: {
+    type: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    parameters: {
+    results: {
       type: DataTypes.TEXT,
       allowNull: false
-    },
-    resultPreview: {
-      type: DataTypes.TEXT
     },
     datasetId: {
       type: DataTypes.INTEGER,
       references: {
         model: 'FinancialDatasets',
+        key: 'id'
+      }
+    },
+    transformationId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'DataTransformations',
         key: 'id'
       }
     },
@@ -50,15 +54,14 @@ module.exports = (sequelize) => {
       defaultValue: DataTypes.NOW
     }
   }, {
-    tableName: 'DataTransformations' // Important: Match the SQL table name
+    tableName: 'AnalysisReports' // Important: Match the SQL table name
   });
 
-  DataTransformation.associate = (models) => {
-    DataTransformation.belongsTo(models.FinancialDataset, { foreignKey: 'datasetId' });
-    DataTransformation.belongsTo(models.User, { foreignKey: 'userId' });
-    DataTransformation.hasMany(models.TimelineEvent, { foreignKey: 'transformationId' });
-    DataTransformation.hasMany(models.AnalysisReport, { foreignKey: 'transformationId' });
+  AnalysisReport.associate = (models) => {
+    AnalysisReport.belongsTo(models.User, { foreignKey: 'userId' });
+    AnalysisReport.belongsTo(models.FinancialDataset, { foreignKey: 'datasetId' });
+    AnalysisReport.belongsTo(models.DataTransformation, { foreignKey: 'transformationId' });
   };
 
-  return DataTransformation;
+  return AnalysisReport;
 };
