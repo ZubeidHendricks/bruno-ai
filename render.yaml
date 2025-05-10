@@ -1,10 +1,10 @@
 services:
   - type: web
     name: bruno-ai-api
-    runtime: node
+    runtime: docker
     plan: free
-    buildCommand: npm install
-    startCommand: bash start.sh
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV

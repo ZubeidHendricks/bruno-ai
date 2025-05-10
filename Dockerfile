@@ -1,48 +1,26 @@
-# Base Node.js image
-FROM node:18-alpine as build
+FROM node:18-slim
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
+# Copy package files first for better caching
+COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with npm install instead of npm ci for better compatibility
+RUN npm install --production
 
 # Copy source files
 COPY . .
 
-# Build the React application
-RUN npm run build
-
-# Production image
-FROM node:18-alpine
-
-# Set working directory
-WORKDIR /app
-
-# Install production dependencies
-COPY package.json package-lock.json ./
-RUN npm ci --only=production
-
-# Copy built application from build stage
-COPY --from=build /app/build ./build
-COPY --from=build /app/src/server ./src/server
-COPY --from=build /app/src/database ./src/database
-COPY --from=build /app/src/services ./src/services
-COPY --from=build /app/src/utils ./src/utils
-COPY --from=build /app/src/config ./src/config
-
-# Create directories for file uploads and logs
-RUN mkdir -p uploads processed logs
-
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=10000
 
-# Expose port
-EXPOSE 3000
+# Expose the port
+EXPOSE 10000
 
-# Start the server
-CMD ["node", "src/server/index.js"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:10000/api/health || exit 1
+
+# Start the application
+CMD ["node", "server.js"]
