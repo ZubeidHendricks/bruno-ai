@@ -36,6 +36,37 @@ if (!fs.existsSync(DATA_DIR)) {
   }
 }
 
+// CORS configuration - MUST BE BEFORE OTHER MIDDLEWARE
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',') 
+  : ['http://localhost:3000', 'https://bruno-ai-olive.vercel.app'];
+
+console.log('Allowed origins:', allowedOrigins);
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if the origin is allowed
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked:', origin);
+      callback(null, false);
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+};
+
+// Apply CORS early
+app.use(cors(corsOptions));
+
 // Health check endpoint - must be before other middleware for faster health checks
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -46,9 +77,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// OPTIONS request handler for preflight CORS
+app.options('*', cors(corsOptions));
+
 // Security middleware
 app.use(helmet({
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // Add request ID for traceability
@@ -56,6 +91,10 @@ app.use((req, res, next) => {
   req.id = uuidv4();
   next();
 });
+
+// Body parsing middleware
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Rate limiting
 const apiLimiter = rateLimit({
@@ -66,8 +105,11 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Apply rate limiting to API routes
-app.use('/api/', apiLimiter);
+// Apply rate limiting to API routes - EXCEPT health and auth routes
+app.use('/api/datasets', apiLimiter);
+app.use('/api/transformations', apiLimiter);
+app.use('/api/search', apiLimiter);
+app.use('/api/dashboard', apiLimiter);
 
 // Request logging
 if (process.env.NODE_ENV !== 'production') {
@@ -78,35 +120,11 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-// CORS configuration
-const allowedOrigins = process.env.CORS_ORIGIN 
-  ? process.env.CORS_ORIGIN.split(',') 
-  : ['http://localhost:3000', 'https://bruno-ai-olive.vercel.app'];
-
-console.log('Allowed origins:', allowedOrigins);
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  maxAge: 86400 // 24 hours
-};
-
-// Middleware
-app.use(cors(corsOptions));
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+// CORS debugging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url} - Origin: ${req.headers.origin || 'none'}`);
+  next();
+});
 
 // Make unavailable routes respond with 503 instead of crashing
 const unavailableHandler = (req, res) => {
@@ -116,15 +134,82 @@ const unavailableHandler = (req, res) => {
   });
 };
 
+// Simple auth route placeholder for testing
+app.post('/api/auth/register', (req, res) => {
+  console.log('Register route hit', req.body);
+  try {
+    // Extract user details
+    const { username, email, password } = req.body;
+    
+    // Validate input
+    if (!username || !email || !password) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Username, email, and password are required' 
+      });
+    }
+    
+    // This is a temporary placeholder until the database is working
+    res.status(201).json({
+      success: true,
+      message: 'Temporary registration success. Database integration pending.',
+      user: {
+        id: '12345',
+        username,
+        email
+      }
+    });
+  } catch (error) {
+    console.error('Error in register route:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Registration failed', 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+app.post('/api/auth/login', (req, res) => {
+  console.log('Login route hit', req.body);
+  try {
+    const { email, password } = req.body;
+    
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email and password are required' 
+      });
+    }
+    
+    // This is a temporary placeholder until the database is working
+    res.status(200).json({
+      success: true,
+      message: 'Temporary login success. Database integration pending.',
+      token: 'temporary-jwt-token',
+      user: {
+        id: '12345',
+        username: 'tempuser',
+        email
+      }
+    });
+  } catch (error) {
+    console.error('Error in login route:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Login failed',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // Setup API routes with error handling
 const setupApiRoutes = async () => {
   try {
-    // Import routes - with fallbacks for production
-    let authRoutes, datasetRoutes, transformationRoutes, dashboardRoutes, searchRoutes, errorHandler;
-    
+    // Try to import database models - this is where most errors occur
+    let db;
     try {
-      // Try to import database models - this is where most errors occur
-      const db = require('./src/database/models');
+      db = require('./src/database/models');
       console.log('Database models loaded successfully');
       
       // Test database connection but don't crash if it fails in production
@@ -136,77 +221,97 @@ const setupApiRoutes = async () => {
           throw error;
         }
       }
-      
-      // Import routes
-      try {
-        authRoutes = require('./src/routes/authRoutes');
-        datasetRoutes = require('./src/routes/datasetRoutes');
-        transformationRoutes = require('./src/routes/transformationRoutes');
-        dashboardRoutes = require('./src/routes/dashboardRoutes');
-        searchRoutes = require('./src/routes/searchRoutes');
-        errorHandler = require('./src/middlewares/errorHandler');
-        
-        // Setup routes
+    } catch (error) {
+      console.error('Error loading database models:', error);
+      console.warn('Continuing without database models in production mode');
+      // In development, we would throw the error
+      if (process.env.NODE_ENV !== 'production') {
+        throw error;
+      }
+    }
+    
+    // Import routes with error handling
+    try {
+      if (fs.existsSync('./src/routes/authRoutes.js')) {
+        const authRoutes = require('./src/routes/authRoutes');
         app.use('/api/auth', authRoutes);
+        console.log('Auth routes loaded successfully');
+      } else {
+        console.warn('authRoutes.js not found, using placeholder routes');
+      }
+      
+      if (fs.existsSync('./src/routes/datasetRoutes.js')) {
+        const datasetRoutes = require('./src/routes/datasetRoutes');
         app.use('/api/datasets', datasetRoutes);
+        console.log('Dataset routes loaded successfully');
+      } else {
+        app.use('/api/datasets', unavailableHandler);
+      }
+      
+      if (fs.existsSync('./src/routes/transformationRoutes.js')) {
+        const transformationRoutes = require('./src/routes/transformationRoutes');
         app.use('/api/transformations', transformationRoutes);
-        app.use('/api/search', searchRoutes);
+        console.log('Transformation routes loaded successfully');
+      } else {
+        app.use('/api/transformations', unavailableHandler);
+      }
+      
+      if (fs.existsSync('./src/routes/dashboardRoutes.js')) {
+        const dashboardRoutes = require('./src/routes/dashboardRoutes');
         app.use('/api/dashboard', dashboardRoutes);
-        
-        console.log('API routes loaded successfully');
-      } catch (error) {
-        console.error('Error loading routes:', error);
-        if (process.env.NODE_ENV === 'production') {
-          // In production, provide unavailable responses
-          app.use('/api/auth', unavailableHandler);
-          app.use('/api/datasets', unavailableHandler);
-          app.use('/api/transformations', unavailableHandler);
-          app.use('/api/search', unavailableHandler);
-          app.use('/api/dashboard', unavailableHandler);
-        } else {
-          throw error;
-        }
+        console.log('Dashboard routes loaded successfully');
+      } else {
+        app.use('/api/dashboard', unavailableHandler);
+      }
+      
+      if (fs.existsSync('./src/routes/searchRoutes.js')) {
+        const searchRoutes = require('./src/routes/searchRoutes');
+        app.use('/api/search', searchRoutes);
+        console.log('Search routes loaded successfully');
+      } else {
+        app.use('/api/search', unavailableHandler);
       }
     } catch (error) {
-      console.error('Critical error loading database or routes:', error);
+      console.error('Error loading routes:', error);
+      console.warn('Using fallback routes');
+      
+      // In production, we want to at least have the API running
+      // Even if the database isn't connected
       if (process.env.NODE_ENV === 'production') {
-        // In production, provide unavailable responses
-        app.use('/api/auth', unavailableHandler);
         app.use('/api/datasets', unavailableHandler);
         app.use('/api/transformations', unavailableHandler);
-        app.use('/api/search', unavailableHandler);
         app.use('/api/dashboard', unavailableHandler);
+        app.use('/api/search', unavailableHandler);
       } else {
         throw error;
       }
     }
     
-    // Static files - only serve if not deployed separately
-    if (process.env.SERVE_FRONTEND === 'true') {
-      app.use(express.static(path.join(__dirname, 'build')));
-      
-      // Serve React app for any routes not handled by the API
-      app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, 'build', 'index.html'));
-      });
+    // Error handling middleware
+    let errorHandler;
+    try {
+      if (fs.existsSync('./src/middlewares/errorHandler.js')) {
+        errorHandler = require('./src/middlewares/errorHandler');
+        app.use(errorHandler);
+        console.log('Error handler loaded successfully');
+      } else {
+        console.warn('errorHandler.js not found, using default error handler');
+      }
+    } catch (error) {
+      console.error('Error loading error handler:', error);
     }
     
-    // Error handling middleware
-    if (errorHandler) {
-      app.use(errorHandler);
-    } else {
-      // Fallback error handler
-      app.use((err, req, res, next) => {
-        console.error('Unhandled error:', err);
-        res.status(500).json({
-          error: 'Internal server error',
-          message: process.env.NODE_ENV === 'production' 
-            ? 'An unexpected error occurred' 
-            : err.message,
-          requestId: req.id
-        });
+    // Default error handler as fallback
+    app.use((err, req, res, next) => {
+      console.error('Unhandled error:', err);
+      res.status(500).json({
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'production' 
+          ? 'An unexpected error occurred' 
+          : err.message,
+        requestId: req.id
       });
-    }
+    });
     
     console.log('API routes successfully set up');
     return true;
@@ -222,41 +327,23 @@ const setupApiRoutes = async () => {
 // Start server
 const startServer = async () => {
   try {
-    // Setup API routes asynchronously - but don't wait for it in production
-    if (process.env.NODE_ENV === 'production') {
-      // In production, start server first, then set up routes
-      const server = app.listen(PORT, () => {
-        console.log(`Server running in production mode on port ${PORT}`);
-        
-        // Setup routes after server is started
-        setupApiRoutes().catch(err => {
-          console.error('Error setting up API routes:', err);
-        });
+    // In production, start server first, then set up routes
+    const server = app.listen(PORT, () => {
+      console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+      
+      // Setup routes after server is started
+      setupApiRoutes().catch(err => {
+        console.error('Error setting up API routes:', err);
       });
-      
-      // Set timeout for server operations
-      server.timeout = 120000; // 2 minutes
-      
-      // Graceful shutdown handling
-      setupShutdownHandlers(server);
-      
-      return server;
-    } else {
-      // In development, wait for routes to be set up before starting server
-      await setupApiRoutes();
-      
-      const server = app.listen(PORT, () => {
-        console.log(`Server running in development mode on port ${PORT}`);
-      });
-      
-      // Set timeout for server operations
-      server.timeout = 120000; // 2 minutes
-      
-      // Graceful shutdown handling
-      setupShutdownHandlers(server);
-      
-      return server;
-    }
+    });
+    
+    // Set timeout for server operations
+    server.timeout = 120000; // 2 minutes
+    
+    // Graceful shutdown handling
+    setupShutdownHandlers(server);
+    
+    return server;
   } catch (error) {
     console.error('Failed to start server:', error);
     if (process.env.NODE_ENV !== 'production') {

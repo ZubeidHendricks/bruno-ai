@@ -37,3 +37,5 @@ services:
         generateValue: true
       - key: CORS_ORIGIN
         value: "https://bruno-ai-olive.vercel.app"
+      - key: ALLOW_ALL_ORIGINS
+        value: "true"
